@@ -1,17 +1,71 @@
 use std::collections::BTreeSet;
 use std::fs;
-use std::path::Path;
+use std::path::{Path, PathBuf};
+
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
+pub struct CorpusLoadReport {
+    pub files: Vec<PathBuf>,
+    pub glosses: Vec<String>,
+    pub sentences: Vec<String>,
+}
 
 pub fn load_glosses_from_data_dir(path: &Path) -> Result<Vec<String>, String> {
-    let mut words = BTreeSet::new();
+    Ok(load_corpus_from_data_dir(path)?.glosses)
+}
 
+pub fn load_corpus_from_data_dir(path: &Path) -> Result<CorpusLoadReport, String> {
+    let mut words = BTreeSet::new();
+    let mut sentences = BTreeSet::new();
+    let mut files = Vec::new();
+
+    collect_supported_files(path, &mut files)?;
+    files.sort();
+
+    for file_path in &files {
+        let Some(extension) = file_path
+            .extension()
+            .and_then(|extension| extension.to_str())
+        else {
+            continue;
+        };
+
+        let content = fs::read_to_string(file_path)
+            .map_err(|error| format!("failed to read {}: {error}", file_path.display()))?;
+
+        let extracted = match extension {
+            "md" => parse_markdown_content(&content),
+            "json" => parse_json_content(&content)?,
+            _ => ParsedCorpusContent::default(),
+        };
+
+        words.extend(extracted.words);
+        sentences.extend(extracted.sentences);
+    }
+
+    if files.is_empty() {
+        return Err(format!(
+            "no supported .md or .json corpus files were found in {}",
+            path.display()
+        ));
+    }
+
+    Ok(CorpusLoadReport {
+        files,
+        glosses: words.into_iter().collect(),
+        sentences: sentences.into_iter().collect(),
+    })
+}
+
+fn collect_supported_files(path: &Path, files: &mut Vec<PathBuf>) -> Result<(), String> {
     let entries = fs::read_dir(path)
         .map_err(|error| format!("failed to read data directory {}: {error}", path.display()))?;
 
     for entry in entries {
         let entry = entry.map_err(|error| format!("failed to read a directory entry: {error}"))?;
         let file_path = entry.path();
-        if !file_path.is_file() {
+
+        if file_path.is_dir() {
+            collect_supported_files(&file_path, files)?;
             continue;
         }
 
@@ -22,30 +76,23 @@ pub fn load_glosses_from_data_dir(path: &Path) -> Result<Vec<String>, String> {
             continue;
         };
 
-        let content = fs::read_to_string(&file_path)
-            .map_err(|error| format!("failed to read {}: {error}", file_path.display()))?;
-
-        let extracted = match extension {
-            "md" => parse_markdown_words(&content),
-            "json" => parse_json_words(&content)?,
-            _ => Vec::new(),
-        };
-
-        words.extend(extracted);
+        if matches!(extension, "md" | "json") {
+            files.push(file_path);
+        }
     }
 
-    if words.is_empty() {
-        return Err(format!(
-            "no supported .md or .json corpus files were found in {}",
-            path.display()
-        ));
-    }
-
-    Ok(words.into_iter().collect())
+    Ok(())
 }
 
-fn parse_markdown_words(content: &str) -> Vec<String> {
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
+struct ParsedCorpusContent {
+    words: Vec<String>,
+    sentences: Vec<String>,
+}
+
+fn parse_markdown_content(content: &str) -> ParsedCorpusContent {
     let mut words = Vec::new();
+    let mut sentences = Vec::new();
 
     for line in content.lines() {
         let trimmed = line.trim();
@@ -53,21 +100,28 @@ fn parse_markdown_words(content: &str) -> Vec<String> {
             continue;
         }
 
+        if looks_like_sentence(trimmed) {
+            sentences.push(trimmed.to_owned());
+        }
         words.extend(extract_words(trimmed));
     }
 
-    words
+    ParsedCorpusContent { words, sentences }
 }
 
-fn parse_json_words(content: &str) -> Result<Vec<String>, String> {
+fn parse_json_content(content: &str) -> Result<ParsedCorpusContent, String> {
     let strings = extract_json_string_values(content)?;
     let mut words = Vec::new();
+    let mut sentences = Vec::new();
 
     for value in strings {
+        if looks_like_sentence(&value) {
+            sentences.push(value.clone());
+        }
         words.extend(extract_words(&value));
     }
 
-    Ok(words)
+    Ok(ParsedCorpusContent { words, sentences })
 }
 
 fn extract_words(text: &str) -> Vec<String> {
@@ -149,18 +203,36 @@ fn extract_json_string_values(content: &str) -> Result<Vec<String>, String> {
     Ok(values)
 }
 
+fn looks_like_sentence(text: &str) -> bool {
+    let has_sentence_punctuation = text.ends_with('.')
+        || text.ends_with('?')
+        || text.ends_with('!')
+        || text.ends_with(':')
+        || text.ends_with(';');
+
+    has_sentence_punctuation || text.split_whitespace().count() > 1
+}
+
 #[cfg(test)]
 mod tests {
-    use super::{extract_json_string_values, parse_markdown_words};
+    use super::{extract_json_string_values, parse_markdown_content};
+    use std::fs;
+    use std::path::PathBuf;
 
     #[test]
     fn parses_markdown_word_lists_and_sentences() {
         let content = "# Heading\n\nI see you.\nThis is good.\n";
-        let words = parse_markdown_words(content);
+        let parsed = parse_markdown_content(content);
 
-        assert!(words.iter().any(|word| word == "i"));
-        assert!(words.iter().any(|word| word == "see"));
-        assert!(words.iter().any(|word| word == "good"));
+        assert!(parsed.words.iter().any(|word| word == "i"));
+        assert!(parsed.words.iter().any(|word| word == "see"));
+        assert!(parsed.words.iter().any(|word| word == "good"));
+        assert!(
+            parsed
+                .sentences
+                .iter()
+                .any(|sentence| sentence == "I see you.")
+        );
     }
 
     #[test]
@@ -169,5 +241,30 @@ mod tests {
         let values = extract_json_string_values(content).expect("json should parse");
 
         assert_eq!(values, vec!["I", "you", "I see you."]);
+    }
+
+    #[test]
+    fn loads_markdown_and_json_recursively() {
+        let root = PathBuf::from("target/test-corpus-recursive");
+        let nested = root.join("nested");
+        fs::create_dir_all(&nested).expect("test directory should be created");
+        fs::write(root.join("words.md"), "# words\nalpha\n").expect("markdown should be written");
+        fs::write(nested.join("more.json"), r#"{"items":["beta gamma"]}"#)
+            .expect("json should be written");
+
+        let report = super::load_corpus_from_data_dir(&root).expect("corpus should load");
+
+        assert_eq!(report.files.len(), 2);
+        assert!(report.glosses.iter().any(|word| word == "alpha"));
+        assert!(report.glosses.iter().any(|word| word == "beta"));
+        assert!(report.glosses.iter().any(|word| word == "gamma"));
+        assert!(
+            report
+                .sentences
+                .iter()
+                .any(|sentence| sentence == "beta gamma")
+        );
+
+        fs::remove_dir_all(&root).expect("test directory should be removed");
     }
 }

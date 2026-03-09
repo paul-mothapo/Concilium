@@ -76,6 +76,44 @@ impl Language {
         Some(self.grammar.render_clause(&clause))
     }
 
+    pub fn translate_text(&self, text: &str) -> String {
+        let mut translated = Vec::new();
+
+        for token in tokenize_text(text) {
+            match token {
+                TextToken::Word(word) => {
+                    if let Some(lexeme) = self.lexeme(&word) {
+                        translated.push(lexeme.form.text());
+                    } else {
+                        translated.push(word);
+                    }
+                }
+                TextToken::Punctuation(mark) => translated.push(mark.to_string()),
+            }
+        }
+
+        join_translated_tokens(&translated)
+    }
+
+    pub fn pronunciation_for_text(&self, text: &str) -> String {
+        let mut pronunciation = Vec::new();
+
+        for token in tokenize_text(text) {
+            match token {
+                TextToken::Word(word) => {
+                    if let Some(lexeme) = self.lexeme(&word) {
+                        pronunciation.push(format!("[{}]", lexeme.form.pronunciation()));
+                    } else {
+                        pronunciation.push(format!("[{}]", word));
+                    }
+                }
+                TextToken::Punctuation(mark) => pronunciation.push(mark.to_string()),
+            }
+        }
+
+        join_translated_tokens(&pronunciation)
+    }
+
     pub fn inventory_snapshot(&self) -> Vec<String> {
         let mut symbols = BTreeSet::new();
         for inventory in [
@@ -165,4 +203,59 @@ fn derive_inventory(
     let mut unique = BTreeSet::new();
     derived.retain(|phoneme| unique.insert(phoneme.symbol.clone()));
     derived
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+enum TextToken {
+    Word(String),
+    Punctuation(char),
+}
+
+fn tokenize_text(text: &str) -> Vec<TextToken> {
+    let mut tokens = Vec::new();
+    let mut current = String::new();
+
+    for character in text.chars() {
+        if character.is_ascii_alphabetic() || character == '\'' {
+            current.push(character.to_ascii_lowercase());
+            continue;
+        }
+
+        if !current.is_empty() {
+            tokens.push(TextToken::Word(std::mem::take(&mut current)));
+        }
+
+        if !character.is_whitespace() {
+            tokens.push(TextToken::Punctuation(character));
+        }
+    }
+
+    if !current.is_empty() {
+        tokens.push(TextToken::Word(current));
+    }
+
+    tokens
+}
+
+fn join_translated_tokens(tokens: &[String]) -> String {
+    let mut output = String::new();
+
+    for token in tokens {
+        let is_punctuation = token.len() == 1
+            && token
+                .chars()
+                .next()
+                .is_some_and(|character| !character.is_ascii_alphanumeric());
+
+        if is_punctuation {
+            output.push_str(token);
+        } else {
+            if !output.is_empty() {
+                output.push(' ');
+            }
+            output.push_str(token);
+        }
+    }
+
+    output
 }

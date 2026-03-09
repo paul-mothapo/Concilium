@@ -1,4 +1,4 @@
-use crate::corpus::load_glosses_from_data_dir;
+use crate::corpus::load_corpus_from_data_dir;
 use crate::evolution::LanguageEngine;
 use crate::form::WordForm;
 use crate::glossary::render_english_to_concilium;
@@ -92,19 +92,22 @@ fn language_generation_preserves_lexicon_size_and_demo_sentence() {
             .any(|symbol| symbol == "kh")
     );
 
-    let glossary = render_english_to_concilium(&language);
+    let corpus = load_corpus_from_data_dir(Path::new("data")).expect("data directory should load");
+    let glossary = render_english_to_concilium(&language, &corpus);
     assert!(glossary.contains("# English to Concilium"));
     assert!(glossary.contains("["));
+    assert!(glossary.contains("## English Sentences to Concilium"));
 }
 
 #[test]
 fn corpus_loader_reads_markdown_data_directory() {
-    let glosses =
-        load_glosses_from_data_dir(Path::new("data")).expect("data directory should load");
+    let corpus = load_corpus_from_data_dir(Path::new("data")).expect("data directory should load");
 
-    assert!(glosses.iter().any(|word| word == "i"));
-    assert!(glosses.iter().any(|word| word == "you"));
-    assert!(glosses.iter().any(|word| word == "see"));
+    assert!(!corpus.files.is_empty());
+    assert!(corpus.glosses.iter().any(|word| word == "i"));
+    assert!(corpus.glosses.iter().any(|word| word == "you"));
+    assert!(corpus.glosses.iter().any(|word| word == "see"));
+    assert!(!corpus.sentences.is_empty());
 }
 
 fn simple_phonology() -> Phonology {
