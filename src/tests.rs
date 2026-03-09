@@ -108,6 +108,7 @@ fn corpus_loader_reads_markdown_data_directory() {
     assert!(corpus.glosses.iter().any(|word| word == "you"));
     assert!(corpus.glosses.iter().any(|word| word == "see"));
     assert!(!corpus.sentences.is_empty());
+    assert!(corpus.api_sources.is_empty());
 }
 
 fn simple_phonology() -> Phonology {

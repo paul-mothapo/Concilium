@@ -7,6 +7,42 @@ pub struct CorpusLoadReport {
     pub files: Vec<PathBuf>,
     pub glosses: Vec<String>,
     pub sentences: Vec<String>,
+    pub api_sources: Vec<String>,
+}
+
+impl CorpusLoadReport {
+    pub fn merge(mut self, other: Self) -> Self {
+        self.files.extend(other.files);
+        self.api_sources.extend(other.api_sources);
+
+        let mut glosses = BTreeSet::new();
+        glosses.extend(self.glosses);
+        glosses.extend(other.glosses);
+
+        let mut sentences = BTreeSet::new();
+        sentences.extend(self.sentences);
+        sentences.extend(other.sentences);
+
+        self.glosses = glosses.into_iter().collect();
+        self.sentences = sentences.into_iter().collect();
+        self.files.sort();
+        self.files.dedup();
+        self.api_sources.sort();
+        self.api_sources.dedup();
+        self
+    }
+
+    pub fn limit(mut self, max_glosses: usize, max_sentences: usize) -> Self {
+        if self.glosses.len() > max_glosses {
+            self.glosses.truncate(max_glosses);
+        }
+
+        if self.sentences.len() > max_sentences {
+            self.sentences.truncate(max_sentences);
+        }
+
+        self
+    }
 }
 
 pub fn load_glosses_from_data_dir(path: &Path) -> Result<Vec<String>, String> {
@@ -53,6 +89,7 @@ pub fn load_corpus_from_data_dir(path: &Path) -> Result<CorpusLoadReport, String
         files,
         glosses: words.into_iter().collect(),
         sentences: sentences.into_iter().collect(),
+        api_sources: Vec::new(),
     })
 }
 

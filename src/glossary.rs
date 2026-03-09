@@ -65,6 +65,7 @@ mod tests {
             files: Vec::new(),
             glosses: vec!["you".to_owned()],
             sentences: vec!["You.".to_owned()],
+            api_sources: Vec::new(),
         };
 
         let markdown = render_english_to_concilium(&language, &corpus);
