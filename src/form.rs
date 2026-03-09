@@ -24,6 +24,14 @@ impl WordForm {
         self.phonemes.concat()
     }
 
+    pub fn pronunciation(&self) -> String {
+        self.phonemes
+            .iter()
+            .map(|phoneme| approximate_pronunciation(phoneme))
+            .collect::<Vec<_>>()
+            .join("-")
+    }
+
     pub fn with_prefix<I, S>(&self, prefix: I) -> Self
     where
         I: IntoIterator<Item = S>,
@@ -48,5 +56,23 @@ impl WordForm {
 impl Display for WordForm {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.text())
+    }
+}
+
+fn approximate_pronunciation(phoneme: &str) -> String {
+    match phoneme {
+        "a" => "ah".to_owned(),
+        "ae" => "eye".to_owned(),
+        "e" => "eh".to_owned(),
+        "i" => "ee".to_owned(),
+        "o" => "oh".to_owned(),
+        "u" => "oo".to_owned(),
+        "kh" => "kh".to_owned(),
+        "sh" => "sh".to_owned(),
+        "zh" => "zh".to_owned(),
+        "dr" => "dr".to_owned(),
+        "kr" => "kr".to_owned(),
+        "tl" => "tl".to_owned(),
+        other => other.to_owned(),
     }
 }

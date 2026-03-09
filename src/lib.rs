@@ -1,5 +1,7 @@
+pub mod corpus;
 pub mod evolution;
 pub mod form;
+pub mod glossary;
 pub mod grammar;
 pub mod lexicon;
 pub mod mutation;

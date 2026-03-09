@@ -1,5 +1,7 @@
+use crate::corpus::load_glosses_from_data_dir;
 use crate::evolution::LanguageEngine;
 use crate::form::WordForm;
+use crate::glossary::render_english_to_concilium;
 use crate::grammar::{Clause, Grammar, WordOrder};
 use crate::lexicon::{LexiconGenerator, WordGenerationConfig};
 use crate::mutation::{Environment, Matcher, SoundChange};
@@ -8,6 +10,7 @@ use crate::phonology::{
 };
 use crate::presets::{DEMO_GLOSSES, concilium_blueprint, demo_generation_config};
 use crate::rng::Random;
+use std::path::Path;
 
 #[test]
 fn generated_words_respect_initial_consonant_constraint() {
@@ -88,6 +91,20 @@ fn language_generation_preserves_lexicon_size_and_demo_sentence() {
             .iter()
             .any(|symbol| symbol == "kh")
     );
+
+    let glossary = render_english_to_concilium(&language);
+    assert!(glossary.contains("# English to Concilium"));
+    assert!(glossary.contains("["));
+}
+
+#[test]
+fn corpus_loader_reads_markdown_data_directory() {
+    let glosses =
+        load_glosses_from_data_dir(Path::new("data")).expect("data directory should load");
+
+    assert!(glosses.iter().any(|word| word == "i"));
+    assert!(glosses.iter().any(|word| word == "you"));
+    assert!(glosses.iter().any(|word| word == "see"));
 }
 
 fn simple_phonology() -> Phonology {
