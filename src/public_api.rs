@@ -1,4 +1,3 @@
-use std::collections::BTreeSet;
 use std::time::Duration;
 
 use reqwest::blocking::Client;
@@ -6,9 +5,8 @@ use serde::Deserialize;
 
 use crate::corpus::CorpusLoadReport;
 
-const DATAMUSE_API: &str = "https://api.datamuse.com/words";
-const QUOTABLE_API: &str = "https://api.quotable.io/quotes/random";
-const POETRY_DB_API: &str = "https://poetrydb.org/random";
+const RANDOM_WORD_API: &str = "https://random-word-api.herokuapp.com/word";
+const DUMMY_JSON_QUOTES_API: &str = "https://dummyjson.com/quotes/random";
 const BACON_IPSUM_API: &str = "https://baconipsum.com/api/";
 
 pub fn fetch_public_api_corpus(context_window: usize) -> Result<CorpusLoadReport, String> {
@@ -20,7 +18,7 @@ pub fn fetch_public_api_corpus(context_window: usize) -> Result<CorpusLoadReport
     let word_target = context_window;
     let sentence_target = (context_window / 25).clamp(10, 400);
 
-    let words_result = fetch_datamuse_words(&client, word_target);
+    let words_result = fetch_random_words(&client, word_target);
     let passages_result = fetch_public_passages(&client, sentence_target);
 
     let mut api_sources = Vec::new();
@@ -29,7 +27,7 @@ pub fn fetch_public_api_corpus(context_window: usize) -> Result<CorpusLoadReport
     let words = match words_result {
         Ok(words) if !words.is_empty() => {
             api_sources.push(format!(
-                "Datamuse batched prefixes toward {word_target} words"
+                "Random Word API generated {word_target} words"
             ));
             words
         }
@@ -64,71 +62,22 @@ pub fn fetch_public_api_corpus(context_window: usize) -> Result<CorpusLoadReport
     })
 }
 
-fn fetch_datamuse_words(client: &Client, target: usize) -> Result<Vec<String>, String> {
-    let batch_limit = target
-        .saturating_add(25)
-        .div_ceil(26)
-        .saturating_add(50)
-        .clamp(250, 1000);
-    let secondary_batch_limit = (target / 100).clamp(50, 200);
-    let mut words = BTreeSet::new();
-    let mut errors = Vec::new();
-
-    for prefix in ('a'..='z').map(|letter| format!("{letter}*")) {
-        match fetch_datamuse_words_for_pattern(client, &prefix, batch_limit) {
-            Ok(batch) => {
-                words.extend(batch);
-                if words.len() >= target {
-                    break;
-                }
-            }
-            Err(error) => errors.push(error),
-        }
-    }
-
-    if words.len() < target {
-        'outer: for first in 'a'..='z' {
-            for second in 'a'..='z' {
-                let prefix = format!("{first}{second}*");
-                match fetch_datamuse_words_for_pattern(client, &prefix, secondary_batch_limit) {
-                    Ok(batch) => {
-                        words.extend(batch);
-                        if words.len() >= target {
-                            break 'outer;
-                        }
-                    }
-                    Err(error) => errors.push(error),
-                }
-            }
-        }
-    }
-
-    if words.is_empty() {
-        return Err(errors.join(" | "));
-    }
-
-    Ok(words.into_iter().take(target).collect())
-}
-
-fn fetch_datamuse_words_for_pattern(
-    client: &Client,
-    pattern: &str,
-    limit: usize,
-) -> Result<Vec<String>, String> {
+fn fetch_random_words(client: &Client, target: usize) -> Result<Vec<String>, String> {
+    let limit = target.clamp(1, 1500);
+    
     let response = client
-        .get(DATAMUSE_API)
-        .query(&[("sp", pattern), ("max", &limit.to_string())])
+        .get(RANDOM_WORD_API)
+        .query(&[("number", &limit.to_string())])
         .send()
         .and_then(|response| response.error_for_status())
-        .map_err(|error| format!("Datamuse request failed for pattern {pattern}: {error}"))?;
+        .map_err(|error| format!("Random Word API request failed: {error}"))?;
 
-    let payload = response.json::<Vec<DatamuseWord>>().map_err(|error| {
-        format!("Datamuse response parse failed for pattern {pattern}: {error}")
+    let payload = response.json::<Vec<String>>().map_err(|error| {
+        format!("Random Word API response parse failed: {error}")
     })?;
 
     Ok(payload
         .into_iter()
-        .map(|item| item.word)
         .filter(|word| {
             word.chars()
                 .all(|character| character.is_ascii_alphabetic())
@@ -136,50 +85,61 @@ fn fetch_datamuse_words_for_pattern(
         .collect())
 }
 
-fn fetch_quotable_passages(client: &Client, limit: usize) -> Result<Vec<String>, String> {
-    let response = client
-        .get(QUOTABLE_API)
-        .query(&[
-            ("limit", limit.to_string()),
-            ("minLength", "120".to_owned()),
-            ("maxLength", "280".to_owned()),
-        ])
-        .send()
-        .and_then(|response| response.error_for_status())
-        .map_err(|error| format!("Quotable request failed: {error}"))?;
 
-    let payload = response
-        .json::<Vec<QuotableQuote>>()
-        .map_err(|error| format!("Quotable response parse failed: {error}"))?;
 
-    Ok(payload.into_iter().map(|quote| quote.content).collect())
+fn fetch_dummyjson_passages(client: &Client, target: usize) -> Result<Vec<String>, String> {
+    let mut sentences = Vec::new();
+    let mut remaining = target;
+
+    while remaining > 0 {
+        let batch_size = remaining.min(50);
+        let response = client
+            .get(format!("{DUMMY_JSON_QUOTES_API}/{batch_size}"))
+            .send()
+            .and_then(|response| response.error_for_status())
+            .map_err(|error| format!("DummyJSON request failed: {error}"))?;
+
+        let payload = response.json::<Vec<DummyJsonQuoteData>>().map_err(|error| {
+            format!("DummyJSON response parse failed: {error}")
+        })?;
+
+        let mut batch = payload
+            .into_iter()
+            .map(|data| data.quote)
+            .filter(|quote| !quote.trim().is_empty())
+            .filter(|quote| looks_like_english_sentence(quote))
+            .collect::<Vec<String>>();
+
+        if batch.is_empty() {
+            break;
+        }
+
+        remaining = remaining.saturating_sub(batch.len());
+        sentences.append(&mut batch);
+
+        if sentences.len() >= target {
+            break;
+        }
+    }
+
+    if sentences.is_empty() {
+        return Err("DummyJSON returned no passages".to_owned());
+    }
+
+    Ok(sentences.into_iter().take(target).collect())
 }
 
 fn fetch_public_passages(client: &Client, target: usize) -> Result<(Vec<String>, String), String> {
     let mut errors = Vec::new();
 
-    match fetch_quotable_passages(client, target.min(50)) {
+    match fetch_dummyjson_passages(client, target) {
         Ok(sentences) if !sentences.is_empty() => {
             return Ok((
                 sentences,
-                format!(
-                    "Quotable /quotes/random?limit={}&minLength=120&maxLength=280",
-                    target.min(50)
-                ),
+                format!("DummyJSON random quotes toward {target} passages"),
             ));
         }
-        Ok(_) => errors.push("Quotable returned no passages".to_owned()),
-        Err(error) => errors.push(error),
-    }
-
-    match fetch_poetrydb_passages(client, target) {
-        Ok(sentences) if !sentences.is_empty() => {
-            return Ok((
-                sentences,
-                format!("PoetryDB batched random toward {target} passages"),
-            ));
-        }
-        Ok(_) => errors.push("PoetryDB returned no passages".to_owned()),
+        Ok(_) => errors.push("DummyJSON returned no passages".to_owned()),
         Err(error) => errors.push(error),
     }
 
@@ -197,54 +157,6 @@ fn fetch_public_passages(client: &Client, target: usize) -> Result<(Vec<String>,
     Err(errors.join(" | "))
 }
 
-fn fetch_poetrydb_passages(client: &Client, target: usize) -> Result<Vec<String>, String> {
-    let mut sentences = Vec::new();
-    let mut errors = Vec::new();
-    let mut remaining = target;
-
-    while remaining > 0 {
-        let batch_size = remaining.min(100);
-        let response = match client
-            .get(format!("{POETRY_DB_API}/{batch_size}"))
-            .send()
-            .and_then(|response| response.error_for_status())
-        {
-            Ok(response) => response,
-            Err(error) => {
-                errors.push(format!("PoetryDB request failed: {error}"));
-                break;
-            }
-        };
-
-        let payload = match response.json::<Vec<PoetryDbPoem>>() {
-            Ok(payload) => payload,
-            Err(error) => {
-                errors.push(format!("PoetryDB response parse failed: {error}"));
-                break;
-            }
-        };
-
-        let mut batch = payload
-            .into_iter()
-            .map(|poem| poem.lines.join(" "))
-            .filter(|poem| !poem.trim().is_empty())
-            .collect::<Vec<_>>();
-
-        if batch.is_empty() {
-            break;
-        }
-
-        remaining = remaining.saturating_sub(batch.len());
-        sentences.append(&mut batch);
-    }
-
-    if sentences.is_empty() {
-        return Err(errors.join(" | "));
-    }
-
-    Ok(sentences.into_iter().take(target).collect())
-}
-
 fn fetch_bacon_ipsum_passages(client: &Client, target: usize) -> Result<Vec<String>, String> {
     let paragraph_count = target.clamp(1, 50);
     let response = client
@@ -260,21 +172,46 @@ fn fetch_bacon_ipsum_passages(client: &Client, target: usize) -> Result<Vec<Stri
 
     response
         .json::<Vec<String>>()
-        .map(|paragraphs| paragraphs.into_iter().take(target).collect())
+        .map(|paragraphs| {
+            paragraphs
+                .into_iter()
+                .filter(|text| looks_like_english_sentence(text))
+                .take(target)
+                .collect()
+        })
         .map_err(|error| format!("Bacon Ipsum response parse failed: {error}"))
 }
 
 #[derive(Clone, Debug, Deserialize)]
-struct DatamuseWord {
-    word: String,
+struct DummyJsonQuoteData {
+    quote: String,
 }
 
-#[derive(Clone, Debug, Deserialize)]
-struct QuotableQuote {
-    content: String,
-}
 
-#[derive(Clone, Debug, Deserialize)]
-struct PoetryDbPoem {
-    lines: Vec<String>,
+fn looks_like_english_sentence(text: &str) -> bool {
+    let mut has_letter = false;
+
+    for character in text.chars() {
+        if character.is_ascii_alphabetic() {
+            has_letter = true;
+            continue;
+        }
+
+        if character.is_ascii_whitespace() {
+            continue;
+        }
+
+        // Allow a small, conservative set of punctuation characters
+        if matches!(
+            character,
+            '.' | ',' | '!' | '?' | ';' | ':' | '\'' | '"' | '-' | '(' | ')'
+        ) {
+            continue;
+        }
+
+        // Reject digits, emojis, non-ASCII scripts, and other symbols
+        return false;
+    }
+
+    has_letter
 }
