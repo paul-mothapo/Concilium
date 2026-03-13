@@ -34,7 +34,7 @@ This separation is intentional. It keeps the project extensible for later work o
 
 ## Current Linguistic Profile
 
-The current Concilium configuration is defined in [src/presets.rs](/d:/paulmothapo2/Concilium/src/presets.rs#L10).
+The current Concilium configuration is defined in `src/presets.rs`.
 
 - Language name: `Concilium`
 - Word order: `SOV`
@@ -44,51 +44,29 @@ The current Concilium configuration is defined in [src/presets.rs](/d:/paulmotha
 
 Because Concilium is `SOV`, English clauses must often be reordered during translation. A gloss sequence equivalent to English `I see you` is realized structurally as `I you see`.
 
-## Translating "I see you"
-
-At the current deterministic seed, the generator can realize the English glosses:
-
-- `i`
-- `you`
-- `see`
-
-into Concilium forms and assemble them according to Concilium grammar.
-
-The translation workflow is:
-
-1. map each English gloss to its generated Concilium lexeme
-2. order the clause according to Concilium syntax
-3. apply optional morphology only when tense or number requires it
-
-For the simple present clause `I see you`, the code path is:
-
-```rust
-language.render_clause_from_glosses("i", "you", "see", false, false)
-```
-
-This means:
-
-- subject = `i`
-- object = `you`
-- verb = `see`
-- plural object = `false`
-- past tense = `false`
-
-The executable prints the resulting Concilium translation directly.
-
 ## Running The Prototype
 
+Concilium uses a multi-mode output system. To run the engine, you must specify which output you want to generate:
+
+### Generate Lexicon (Words)
+This generates a markdown table of all English glosses and their Concilium translations in `Words.md`.
+
 ```bash
-cargo run -q
+cargo run -- words
 ```
 
-This prints:
+### Generate Sentences
+This translates all English sentences found in the `data/` directory and outputs them to `Sentences.md`.
 
-- the language name
-- a phoneme inventory snapshot
-- sample generated words
-- a morphologically marked demonstration clause
-- the translation for `I see you`
+```bash
+cargo run -- sentences
+```
+
+## Data Corpus
+
+The engine loads corpus data from the `data/` directory. It supports:
+- `.md` files: Each line (except headings) is treated as a sentence, and words are extracted for the lexicon.
+- `.json` files: Extracts string values to populate the lexicon and sentence list.
 
 ## Validation
 
@@ -115,4 +93,3 @@ This repository should be understood as an experimental linguistic generator rat
 - script design
 - corpus generation
 - machine-assisted translation between English glosses and Concilium
-

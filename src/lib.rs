@@ -7,7 +7,6 @@ pub mod lexicon;
 pub mod mutation;
 pub mod phonology;
 pub mod presets;
-pub mod public_api;
 
 mod rng;
 

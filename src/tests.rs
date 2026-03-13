@@ -94,9 +94,9 @@ fn language_generation_preserves_lexicon_size_and_demo_sentence() {
 
     let corpus = load_corpus_from_data_dir(Path::new("data")).expect("data directory should load");
     let glossary = render_english_to_concilium(&language, &corpus);
-    assert!(glossary.contains("# English to Concilium"));
+    assert!(glossary.contains("# English to Concilium: Words"));
     assert!(glossary.contains("["));
-    assert!(glossary.contains("## English Sentences to Concilium"));
+    assert!(glossary.contains("# English to Concilium: Sentences"));
 }
 
 #[test]
