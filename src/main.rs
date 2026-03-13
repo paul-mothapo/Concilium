@@ -33,19 +33,23 @@ fn main() {
 
     let mut rng = demo_rng();
     let engine = LanguageEngine;
-    let blueprint = concilium_blueprint();
+    let mut blueprint = concilium_blueprint();
     let input_dir = Path::new("data");
 
     let local_corpus = load_corpus_from_data_dir(input_dir).expect("failed to load corpus data");
-    let gloss_refs = local_corpus
-        .glosses
-        .iter()
-        .map(String::as_str)
-        .collect::<Vec<_>>();
+    
+    // Ensure all glosses in the corpus are mapped to concepts in the blueprint
+    for gloss in &local_corpus.glosses {
+        if blueprint.semantic_mapper.resolve_gloss(gloss).is_empty() {
+            let concept = concilium_language_engine::Concept::new(gloss, gloss);
+            let id = concept.id.clone();
+            blueprint.semantic_mapper.add_concept(concept);
+            blueprint.semantic_mapper.map_gloss(gloss, id);
+        }
+    }
 
     let language = engine.generate_language(
         &blueprint,
-        &gloss_refs,
         demo_generation_config(),
         &mut rng,
     );

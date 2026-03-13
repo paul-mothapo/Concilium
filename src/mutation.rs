@@ -11,6 +11,8 @@ pub enum Matcher {
     OneOf(Vec<String>),
     Vowel,
     Consonant,
+    HasFeature(crate::phonology::PhonemeFeature),
+    HasFeatures(Vec<crate::phonology::PhonemeFeature>),
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -55,6 +57,14 @@ impl Matcher {
             }
             Self::Vowel => symbol.is_some_and(|actual| phonology.is_vowel_symbol(actual)),
             Self::Consonant => symbol.is_some_and(|actual| phonology.is_consonant_symbol(actual)),
+            Self::HasFeature(feature) => symbol.is_some_and(|actual| {
+                phonology.find_phoneme(actual).map_or(false, |p| p.features.has(*feature))
+            }),
+            Self::HasFeatures(features) => symbol.is_some_and(|actual| {
+                phonology.find_phoneme(actual).map_or(false, |p| {
+                    features.iter().all(|f| p.features.has(*f))
+                })
+            }),
         }
     }
 }

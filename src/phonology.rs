@@ -1,10 +1,52 @@
 use crate::form::WordForm;
 use crate::rng::Random;
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
+pub enum PhonemeFeature {
+    // Manner
+    Plosive,
+    Fricative,
+    Nasal,
+    Approximant,
+    
+    // Place
+    Labial,
+    Alveolar,
+    Palatal,
+    Velar,
+    Glottal,
+    
+    // Voicing
+    Voiced,
+    Voiceless,
+    
+    // Vowels
+    Front,
+    Back,
+    High,
+    Low,
+}
+
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
+pub struct FeatureSet {
+    pub features: Vec<PhonemeFeature>,
+}
+
+impl FeatureSet {
+    pub fn new(features: Vec<PhonemeFeature>) -> Self {
+        Self { features }
+    }
+    
+    pub fn has(&self, feature: PhonemeFeature) -> bool {
+        self.features.contains(&feature)
+    }
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WeightedPhoneme {
     pub symbol: String,
     pub weight: u32,
+    pub features: FeatureSet,
 }
 
 impl WeightedPhoneme {
@@ -12,7 +54,13 @@ impl WeightedPhoneme {
         Self {
             symbol: symbol.into(),
             weight,
+            features: FeatureSet::default(),
         }
+    }
+
+    pub fn with_features(mut self, features: Vec<PhonemeFeature>) -> Self {
+        self.features = FeatureSet::new(features);
+        self
     }
 }
 
@@ -152,5 +200,13 @@ impl Phonology {
 
     pub fn is_consonant_symbol(&self, symbol: &str) -> bool {
         !self.is_vowel_symbol(symbol)
+    }
+
+    pub fn find_phoneme(&self, symbol: &str) -> Option<&WeightedPhoneme> {
+        self.vowels.iter()
+            .chain(self.onset_consonants.iter())
+            .chain(self.clusters.iter())
+            .chain(self.coda_consonants.iter())
+            .find(|p| p.symbol == symbol)
     }
 }

@@ -3,7 +3,7 @@ use crate::corpus::CorpusLoadReport;
 
 pub fn render_lexicon_markdown(language: &Language) -> String {
     let mut rows = language.lexicon.iter().collect::<Vec<_>>();
-    rows.sort_by(|left, right| left.gloss.cmp(&right.gloss));
+    rows.sort_by(|left, right| left.concept_id.0.cmp(&right.concept_id.0));
 
     let mut output = String::from(
         "# English to Concilium: Words\n\n| English | Concilium | Pronunciation |\n| --- | --- | --- |\n",
@@ -12,7 +12,7 @@ pub fn render_lexicon_markdown(language: &Language) -> String {
     for lexeme in rows {
         output.push_str(&format!(
             "| {} | {} | [{}] |\n",
-            lexeme.gloss,
+            lexeme.concept_id.0,
             lexeme.form.text(),
             lexeme.form.pronunciation()
         ));
@@ -60,6 +60,12 @@ mod tests {
 
     #[test]
     fn renders_markdown_glossary_with_pronunciation() {
+        let mut semantic_mapper = crate::SemanticMapper::new();
+        let concept = crate::Concept::new("you", "you");
+        let id = concept.id.clone();
+        semantic_mapper.add_concept(concept);
+        semantic_mapper.map_gloss("you", id.clone());
+
         let language = Language {
             name: "Concilium".to_owned(),
             phonology: Phonology::new(
@@ -70,9 +76,10 @@ mod tests {
                 vec![],
                 PhonotacticConstraints::new(false),
             ),
-            grammar: Grammar::new(WordOrder::SOV, None, None),
-            lexicon: vec![Lexeme::new("you", WordForm::new(["kh", "i"]))],
+            grammar: Grammar::new(WordOrder::SOV, crate::grammar::MorphologyEngine::default()),
+            lexicon: vec![Lexeme::new(id, WordForm::new(["kh", "i"]))],
             sound_changes: Vec::new(),
+            semantic_mapper,
         };
         let corpus = CorpusLoadReport {
             files: Vec::new(),

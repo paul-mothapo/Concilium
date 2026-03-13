@@ -1,19 +1,18 @@
-use std::collections::HashSet;
-
 use crate::form::WordForm;
 use crate::phonology::Phonology;
 use crate::rng::Random;
+use crate::semantics::ConceptId;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Lexeme {
-    pub gloss: String,
+    pub concept_id: ConceptId,
     pub form: WordForm,
 }
 
 impl Lexeme {
-    pub fn new(gloss: impl Into<String>, form: WordForm) -> Self {
+    pub fn new(concept_id: ConceptId, form: WordForm) -> Self {
         Self {
-            gloss: gloss.into(),
+            concept_id,
             form,
         }
     }
@@ -82,14 +81,14 @@ impl<'a> LexiconGenerator<'a> {
 
     pub fn generate_lexicon(
         &self,
-        glosses: &[&str],
+        concepts: &[ConceptId],
         config: WordGenerationConfig,
         rng: &mut Random,
     ) -> Vec<Lexeme> {
-        let mut used_forms = HashSet::new();
-        let mut lexicon = Vec::with_capacity(glosses.len());
+        let mut used_forms = std::collections::HashSet::new();
+        let mut lexicon = Vec::with_capacity(concepts.len());
 
-        for gloss in glosses {
+        for concept_id in concepts {
             let form = loop {
                 let candidate = self.generate_word(config, rng);
                 if used_forms.insert(candidate.text()) {
@@ -97,7 +96,7 @@ impl<'a> LexiconGenerator<'a> {
                 }
             };
 
-            lexicon.push(Lexeme::new(*gloss, form));
+            lexicon.push(Lexeme::new(concept_id.clone(), form));
         }
 
         lexicon
