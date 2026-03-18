@@ -26,40 +26,40 @@ pub fn demo_rng() -> Random {
 
 pub fn concilium_blueprint() -> LanguageBlueprint {
     let vowels = vec![
-        WeightedPhoneme::new("a", 5).with_features(vec![PhonemeFeature::Low, PhonemeFeature::Back]),
-        WeightedPhoneme::new("e", 4).with_features(vec![PhonemeFeature::Front]),
-        WeightedPhoneme::new("i", 3).with_features(vec![PhonemeFeature::High, PhonemeFeature::Front]),
-        WeightedPhoneme::new("o", 3).with_features(vec![PhonemeFeature::Back]),
-        WeightedPhoneme::new("u", 2).with_features(vec![PhonemeFeature::High, PhonemeFeature::Back]),
+        WeightedPhoneme::new("a", 5).with_features(vec![PhonemeFeature::Low, PhonemeFeature::Back]).with_ipa("ɑ"),
+        WeightedPhoneme::new("e", 4).with_features(vec![PhonemeFeature::Front]).with_ipa("e"),
+        WeightedPhoneme::new("i", 3).with_features(vec![PhonemeFeature::High, PhonemeFeature::Front]).with_ipa("i"),
+        WeightedPhoneme::new("o", 3).with_features(vec![PhonemeFeature::Back]).with_ipa("o"),
+        WeightedPhoneme::new("u", 2).with_features(vec![PhonemeFeature::High, PhonemeFeature::Back]).with_ipa("u"),
     ];
 
     let onset_consonants = vec![
-        WeightedPhoneme::new("l", 4).with_features(vec![PhonemeFeature::Approximant, PhonemeFeature::Alveolar, PhonemeFeature::Voiced]),
-        WeightedPhoneme::new("m", 4).with_features(vec![PhonemeFeature::Nasal, PhonemeFeature::Labial, PhonemeFeature::Voiced]),
-        WeightedPhoneme::new("n", 4).with_features(vec![PhonemeFeature::Nasal, PhonemeFeature::Alveolar, PhonemeFeature::Voiced]),
-        WeightedPhoneme::new("r", 4).with_features(vec![PhonemeFeature::Approximant, PhonemeFeature::Alveolar, PhonemeFeature::Voiced]),
-        WeightedPhoneme::new("k", 3).with_features(vec![PhonemeFeature::Plosive, PhonemeFeature::Velar, PhonemeFeature::Voiceless]),
-        WeightedPhoneme::new("t", 3).with_features(vec![PhonemeFeature::Plosive, PhonemeFeature::Alveolar, PhonemeFeature::Voiceless]),
-        WeightedPhoneme::new("g", 2).with_features(vec![PhonemeFeature::Plosive, PhonemeFeature::Velar, PhonemeFeature::Voiced]),
-        WeightedPhoneme::new("d", 2).with_features(vec![PhonemeFeature::Plosive, PhonemeFeature::Alveolar, PhonemeFeature::Voiced]),
-        WeightedPhoneme::new("s", 3).with_features(vec![PhonemeFeature::Fricative, PhonemeFeature::Alveolar, PhonemeFeature::Voiceless]),
-        WeightedPhoneme::new("v", 2).with_features(vec![PhonemeFeature::Fricative, PhonemeFeature::Labial, PhonemeFeature::Voiced]),
+        WeightedPhoneme::new("l", 4).with_features(vec![PhonemeFeature::Approximant, PhonemeFeature::Alveolar, PhonemeFeature::Voiced]).with_ipa("l"),
+        WeightedPhoneme::new("m", 4).with_features(vec![PhonemeFeature::Nasal, PhonemeFeature::Labial, PhonemeFeature::Voiced]).with_ipa("m"),
+        WeightedPhoneme::new("n", 4).with_features(vec![PhonemeFeature::Nasal, PhonemeFeature::Alveolar, PhonemeFeature::Voiced]).with_ipa("n"),
+        WeightedPhoneme::new("r", 4).with_features(vec![PhonemeFeature::Approximant, PhonemeFeature::Alveolar, PhonemeFeature::Voiced]).with_ipa("r"),
+        WeightedPhoneme::new("k", 3).with_features(vec![PhonemeFeature::Plosive, PhonemeFeature::Velar, PhonemeFeature::Voiceless]).with_ipa("k"),
+        WeightedPhoneme::new("t", 3).with_features(vec![PhonemeFeature::Plosive, PhonemeFeature::Alveolar, PhonemeFeature::Voiceless]).with_ipa("t"),
+        WeightedPhoneme::new("g", 2).with_features(vec![PhonemeFeature::Plosive, PhonemeFeature::Velar, PhonemeFeature::Voiced]).with_ipa("ɡ"),
+        WeightedPhoneme::new("d", 2).with_features(vec![PhonemeFeature::Plosive, PhonemeFeature::Alveolar, PhonemeFeature::Voiced]).with_ipa("d"),
+        WeightedPhoneme::new("s", 3).with_features(vec![PhonemeFeature::Fricative, PhonemeFeature::Alveolar, PhonemeFeature::Voiceless]).with_ipa("s"),
+        WeightedPhoneme::new("v", 2).with_features(vec![PhonemeFeature::Fricative, PhonemeFeature::Labial, PhonemeFeature::Voiced]).with_ipa("v"),
     ];
 
     let clusters = vec![
-        WeightedPhoneme::new("dr", 2).with_features(vec![PhonemeFeature::Plosive, PhonemeFeature::Alveolar, PhonemeFeature::Voiced]),
-        WeightedPhoneme::new("kr", 2).with_features(vec![PhonemeFeature::Plosive, PhonemeFeature::Velar, PhonemeFeature::Voiceless]),
-        WeightedPhoneme::new("sh", 2).with_features(vec![PhonemeFeature::Fricative, PhonemeFeature::Palatal, PhonemeFeature::Voiceless]),
-        WeightedPhoneme::new("tl", 1).with_features(vec![PhonemeFeature::Plosive, PhonemeFeature::Alveolar, PhonemeFeature::Voiceless]),
+        WeightedPhoneme::new("dr", 2).with_features(vec![PhonemeFeature::Plosive, PhonemeFeature::Alveolar, PhonemeFeature::Voiced]).with_ipa("dɹ"),
+        WeightedPhoneme::new("kr", 2).with_features(vec![PhonemeFeature::Plosive, PhonemeFeature::Velar, PhonemeFeature::Voiceless]).with_ipa("kɹ"),
+        WeightedPhoneme::new("sh", 2).with_features(vec![PhonemeFeature::Fricative, PhonemeFeature::Palatal, PhonemeFeature::Voiceless]).with_ipa("ʃ"),
+        WeightedPhoneme::new("tl", 1).with_features(vec![PhonemeFeature::Plosive, PhonemeFeature::Alveolar, PhonemeFeature::Voiceless]).with_ipa("tl"),
     ];
 
     let coda_consonants = vec![
-        WeightedPhoneme::new("l", 2).with_features(vec![PhonemeFeature::Approximant, PhonemeFeature::Alveolar, PhonemeFeature::Voiced]),
-        WeightedPhoneme::new("n", 3).with_features(vec![PhonemeFeature::Nasal, PhonemeFeature::Alveolar, PhonemeFeature::Voiced]),
-        WeightedPhoneme::new("r", 3).with_features(vec![PhonemeFeature::Approximant, PhonemeFeature::Alveolar, PhonemeFeature::Voiced]),
-        WeightedPhoneme::new("k", 2).with_features(vec![PhonemeFeature::Plosive, PhonemeFeature::Velar, PhonemeFeature::Voiceless]),
-        WeightedPhoneme::new("s", 2).with_features(vec![PhonemeFeature::Fricative, PhonemeFeature::Alveolar, PhonemeFeature::Voiceless]),
-        WeightedPhoneme::new("m", 1).with_features(vec![PhonemeFeature::Nasal, PhonemeFeature::Labial, PhonemeFeature::Voiced]),
+        WeightedPhoneme::new("l", 2).with_features(vec![PhonemeFeature::Approximant, PhonemeFeature::Alveolar, PhonemeFeature::Voiced]).with_ipa("l"),
+        WeightedPhoneme::new("n", 3).with_features(vec![PhonemeFeature::Nasal, PhonemeFeature::Alveolar, PhonemeFeature::Voiced]).with_ipa("n"),
+        WeightedPhoneme::new("r", 3).with_features(vec![PhonemeFeature::Approximant, PhonemeFeature::Alveolar, PhonemeFeature::Voiced]).with_ipa("r"),
+        WeightedPhoneme::new("k", 2).with_features(vec![PhonemeFeature::Plosive, PhonemeFeature::Velar, PhonemeFeature::Voiceless]).with_ipa("k"),
+        WeightedPhoneme::new("s", 2).with_features(vec![PhonemeFeature::Fricative, PhonemeFeature::Alveolar, PhonemeFeature::Voiceless]).with_ipa("s"),
+        WeightedPhoneme::new("m", 1).with_features(vec![PhonemeFeature::Nasal, PhonemeFeature::Labial, PhonemeFeature::Voiced]).with_ipa("m"),
     ];
 
     let templates = vec![

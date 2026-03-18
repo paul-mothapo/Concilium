@@ -62,6 +62,13 @@ This translates all English sentences found in the `data/` directory and outputs
 cargo run -- sentences
 ```
 
+### Generate Paragraphs
+This translates paragraph entries from `data/english_paragraphs.md` and outputs them to `Paragraphs.md`.
+
+```bash
+cargo run -- paragraphs
+```
+
 ## Data Corpus
 
 The engine loads corpus data from the `data/` directory. It supports:

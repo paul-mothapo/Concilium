@@ -7,6 +7,7 @@ pub mod lexicon;
 pub mod mutation;
 pub mod phonology;
 pub mod presets;
+pub mod voice;
 pub mod semantics;
 
 mod rng;

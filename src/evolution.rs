@@ -186,6 +186,23 @@ impl Language {
         join_translated_tokens(&pronunciation)
     }
 
+    pub fn ipa_for_text(&self, text: &str) -> String {
+        let mut ipa = Vec::new();
+
+        for token in tokenize_text(text) {
+            match token {
+                TextToken::Word(word) => {
+                    if let Some(lexeme) = self.lexemes_for_gloss(&word).into_iter().next() {
+                        ipa.push(lexeme.form.to_ipa_string(&self.phonology));
+                    }
+                }
+                TextToken::Punctuation(_) => {}
+            }
+        }
+
+        ipa.join(" ")
+    }
+
     pub fn inventory_snapshot(&self) -> Vec<String> {
         let mut symbols = BTreeSet::new();
         for inventory in [

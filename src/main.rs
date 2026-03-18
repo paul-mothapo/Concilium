@@ -4,13 +4,17 @@ use std::path::Path;
 use std::process;
 
 use concilium_language_engine::LanguageEngine;
-use concilium_language_engine::corpus::load_corpus_from_data_dir;
-use concilium_language_engine::glossary::{render_lexicon_markdown, render_sentences_markdown};
+use concilium_language_engine::corpus::{load_corpus_from_data_dir, load_paragraphs_from_markdown};
+use concilium_language_engine::glossary::{
+    render_lexicon_markdown, render_paragraphs_markdown, render_sentences_markdown,
+};
 use concilium_language_engine::presets::{concilium_blueprint, demo_generation_config, demo_rng};
 
 enum RunMode {
     Words,
     Sentences,
+    Paragraphs,
+    Speak,
 }
 
 fn main() {
@@ -23,6 +27,8 @@ fn main() {
         match args[1].as_str() {
             "words" => RunMode::Words,
             "sentences" => RunMode::Sentences,
+            "paragraphs" => RunMode::Paragraphs,
+            "speak" => RunMode::Speak,
             _ => {
                 eprintln!("Error: Unknown mode '{}'", args[1]);
                 print_usage();
@@ -67,6 +73,38 @@ fn main() {
             fs::write(output_path, content).expect("failed to write Sentences.md");
             println!("Sentences translated in: {}", output_path.display());
         }
+        RunMode::Paragraphs => {
+            let paragraph_path = Path::new("data/english_paragraphs.md");
+            let paragraphs = load_paragraphs_from_markdown(paragraph_path)
+                .expect("failed to load english_paragraphs.md");
+            let output_path = Path::new("Paragraphs.md");
+            let content = render_paragraphs_markdown(&language, &paragraphs);
+            fs::write(output_path, content).expect("failed to write Paragraphs.md");
+            println!("Paragraphs translated in: {}", output_path.display());
+        }
+        RunMode::Speak => {
+            let voice = concilium_language_engine::voice::VoiceEngine::new();
+            println!("Speaking corpus sentences...");
+            for sentence in &local_corpus.sentences {
+                let translation = language.translate_text(sentence);
+                println!("- {}: {}", sentence, translation);
+                
+                // Construct IPA for the entire sentence?
+                // Our translation currently returns a String. 
+                // To get IPA, we might need a method on Language that returns a Vec<WordForm> or similar.
+                // For now, let's assume we can get IPA for the whole text if we had a method.
+                // Actually, translate_text just calls realise_node which returns a string join.
+                // We might need to expose the phonology and word forms more directly.
+                
+                // Quick hack: espeak can take raw text if we don't have perfect IPA yet, 
+                // but better to use the IPA we just added.
+                // I'll add a simple version for now.
+                let ipa = language.ipa_for_text(sentence);
+                if let Err(e) = voice.speak(&ipa) {
+                    eprintln!("Error speaking: {}", e);
+                }
+            }
+        }
     }
 
     print_language_summary(&language);
@@ -79,6 +117,8 @@ fn print_usage() {
     println!("Modes:");
     println!("  words      Generate the word lexicon in Words.md");
     println!("  sentences  Translate corpus sentences in Sentences.md");
+    println!("  paragraphs Translate paragraphs in Paragraphs.md");
+    println!("  speak      Pronounce translated sentences using the voice engine");
 }
 
 fn print_language_summary(language: &concilium_language_engine::Language) {

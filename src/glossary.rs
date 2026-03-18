@@ -38,6 +38,25 @@ pub fn render_sentences_markdown(language: &Language, corpus: &CorpusLoadReport)
     output
 }
 
+pub fn render_paragraphs_markdown(language: &Language, paragraphs: &[String]) -> String {
+    let mut output = String::from("# English to Concilium: Paragraphs\n\n");
+
+    for (index, paragraph) in paragraphs.iter().enumerate() {
+        output.push_str(&format!("## Paragraph {}\n\n", index + 1));
+        output.push_str(&format!("English: {}\n\n", paragraph));
+        output.push_str(&format!(
+            "Concilium: {}\n\n",
+            language.translate_text(paragraph)
+        ));
+        output.push_str(&format!(
+            "Pronunciation: {}\n\n",
+            language.pronunciation_for_text(paragraph)
+        ));
+    }
+
+    output
+}
+
 pub fn render_english_to_concilium(language: &Language, corpus: &CorpusLoadReport) -> String {
     let mut output = render_lexicon_markdown(language);
 

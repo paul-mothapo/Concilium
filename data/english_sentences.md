@@ -1,5 +1,13 @@
 # Common English Sentences
 
+I love you.
+God is Great.
+I miss you.
+I need Money.
+Never stop believing.
+I miss My previous girlfriend.
+How are you.
+Paul.
 I see you.
 You see me.
 We are here.

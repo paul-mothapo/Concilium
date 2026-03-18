@@ -49,6 +49,12 @@ pub fn load_glosses_from_data_dir(path: &Path) -> Result<Vec<String>, String> {
     Ok(load_corpus_from_data_dir(path)?.glosses)
 }
 
+pub fn load_paragraphs_from_markdown(path: &Path) -> Result<Vec<String>, String> {
+    let content = fs::read_to_string(path)
+        .map_err(|error| format!("failed to read {}: {error}", path.display()))?;
+    Ok(parse_markdown_paragraphs(&content))
+}
+
 pub fn load_corpus_from_data_dir(path: &Path) -> Result<CorpusLoadReport, String> {
     let mut words = BTreeSet::new();
     let mut sentences = BTreeSet::new();
@@ -144,6 +150,38 @@ fn parse_markdown_content(content: &str) -> ParsedCorpusContent {
     }
 
     ParsedCorpusContent { words, sentences }
+}
+
+fn parse_markdown_paragraphs(content: &str) -> Vec<String> {
+    let mut paragraphs = Vec::new();
+    let mut current = Vec::new();
+
+    for line in content.lines() {
+        let trimmed = line.trim();
+        if trimmed.is_empty() {
+            if !current.is_empty() {
+                paragraphs.push(current.join(" "));
+                current.clear();
+            }
+            continue;
+        }
+
+        if trimmed.starts_with('#') {
+            if !current.is_empty() {
+                paragraphs.push(current.join(" "));
+                current.clear();
+            }
+            continue;
+        }
+
+        current.push(trimmed.to_owned());
+    }
+
+    if !current.is_empty() {
+        paragraphs.push(current.join(" "));
+    }
+
+    paragraphs
 }
 
 fn parse_json_content(content: &str) -> Result<ParsedCorpusContent, String> {

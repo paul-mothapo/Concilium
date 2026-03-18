@@ -51,6 +51,19 @@ impl WordForm {
         phonemes.extend(suffix.into_iter().map(Into::into));
         Self { phonemes }
     }
+
+    pub fn to_ipa_string(&self, phonology: &crate::phonology::Phonology) -> String {
+        self.phonemes
+            .iter()
+            .map(|symbol| {
+                phonology
+                    .find_phoneme(symbol)
+                    .and_then(|p| p.ipa.as_ref())
+                    .map(|s| s.as_str())
+                    .unwrap_or(symbol)
+            })
+            .collect::<String>()
+    }
 }
 
 impl Display for WordForm {

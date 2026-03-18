@@ -47,6 +47,7 @@ pub struct WeightedPhoneme {
     pub symbol: String,
     pub weight: u32,
     pub features: FeatureSet,
+    pub ipa: Option<String>,
 }
 
 impl WeightedPhoneme {
@@ -55,11 +56,17 @@ impl WeightedPhoneme {
             symbol: symbol.into(),
             weight,
             features: FeatureSet::default(),
+            ipa: None,
         }
     }
 
     pub fn with_features(mut self, features: Vec<PhonemeFeature>) -> Self {
         self.features = FeatureSet::new(features);
+        self
+    }
+
+    pub fn with_ipa(mut self, ipa: impl Into<String>) -> Self {
+        self.ipa = Some(ipa.into());
         self
     }
 }
