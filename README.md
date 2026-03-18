@@ -90,6 +90,81 @@ Run:
 cargo test
 ```
 
+## Generate Audio With Kokoro
+
+Use the helper script in `gen/` to generate Concilium audio with Kokoro. It defaults to full sentence lines, says the English sentence first and then the Concilium version, and now renders the Concilium side from converted phonemes instead of making Kokoro guess from English-like spellings.
+
+Create and activate a local virtual environment:
+
+```bash
+cd gen
+python3 -m venv venv
+source venv/bin/activate
+python -m ensurepip --upgrade
+```
+
+Install a CPU-only PyTorch wheel first so `kokoro` does not pull the large CUDA build by default:
+
+```bash
+pip install torch --index-url https://download.pytorch.org/whl/cpu
+pip install 'kokoro>=0.3.4' soundfile
+```
+
+Kokoro also expects `espeak-ng` to be available on the system. The default voice is now Onyx (`am_onyx`), which uses the American English pipeline. Then generate sentence audio files from `Sentences.md`:
+
+```bash
+python kokoro_words.py --input ../Sentences.md --output-dir ../audio/kokoro_sentences
+```
+
+Useful options:
+
+```bash
+python kokoro_words.py --input ../Sentences.md --output-dir ../audio/kokoro_sentences --limit 1
+python kokoro_words.py --input ../Sentences.md --output-dir ../audio/kokoro_sentences --voice am_onyx --speed 0.85
+python kokoro_words.py --input ../Sentences.md --output-dir ../audio/kokoro_sentences --prompt-style concilium
+python kokoro_words.py --input ../Sentences.md --output-dir ../audio/kokoro_sentences --concilium-only
+python kokoro_words.py --input ../Sentences.md --output-dir ../audio/kokoro_sentences --concilium-render spoken
+python kokoro_words.py --input ../Paragraphs.md --unit paragraphs --output-dir ../audio/kokoro_paragraphs --limit 1
+python kokoro_words.py --input ../Sentences.md --unit words --output-dir ../audio/kokoro_words
+python kokoro_words.py --input ../Sentences.md --export-overrides-template pronunciation_overrides.tsv
+```
+
+The script writes `.wav` files plus a `manifest.tsv` file with the original pronunciation hints and the prompt sent to Kokoro.
+
+## Pronunciation Overrides
+
+The script reads `gen/pronunciation_overrides.tsv` by default. This lets you keep using the pronunciation column in your translated markdown while manually correcting any word that Kokoro still says badly.
+
+Important:
+
+- In the default `bilingual` mode, the English sentence still comes first.
+- `--concilium-only` skips the English lead-in entirely.
+- Overrides only affect the Concilium side of the sentence.
+- By default the Concilium side is rendered from phonemes.
+- Use `--prompt-style concilium` only if you explicitly want audio without the English lead-in.
+
+Format:
+
+```tsv
+concilium	pronunciation	spoken
+dimdran	[d-ee-m-dr-ah-n]	deem-drahn
+krukhdraes	[kr-oo-kh-dr-eye-s]	krookh-drice
+```
+
+How it works:
+
+- `concilium`: the Concilium word as it appears in your translated markdown
+- `pronunciation`: the bracketed pronunciation from the markdown table
+- `spoken`: the exact English-ish prompt Kokoro should read for that word
+
+You can generate a starter template from any translated markdown file:
+
+```bash
+python kokoro_words.py --input ../Sentences.md --export-overrides-template pronunciation_overrides.tsv
+```
+
+Then edit the `spoken` column by ear until the pronunciation sounds right.
+
 ## Research Notes
 
 This repository should be understood as an experimental linguistic generator rather than a finished conlang toolkit. The current implementation establishes a disciplined baseline for further research into:
